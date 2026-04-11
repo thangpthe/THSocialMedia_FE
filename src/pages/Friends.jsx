@@ -75,7 +75,7 @@ export default function Friends() {
           u.id === userId ? { ...u, relationshipStatus: RelationshipStatus.PENDING_SENT } : u
         )
       );
-      showToast('Gửi lời mời kết bạn', 'success');
+      showToast('Gửi lời mời kết bạn thành công!', 'success');
     } catch (err) {
       showToast(err.message, 'error');
     }
@@ -124,7 +124,7 @@ export default function Friends() {
 
         <div className="content">
           {loading && (
-            <div style={{ textAlign: 'center', padding: '2rem' }}>
+            <div style={{ textAlign: 'center', padding: '3rem' }}>
               <div className="spinner"></div>
             </div>
           )}
@@ -196,9 +196,10 @@ export default function Friends() {
                       <div className="user-avatar">{getInitials(user.fullName || user.username)}</div>
                       <h4>{user.fullName || user.username}</h4>
                       <p className="username">@{user.username}</p>
+
                       {user.relationshipStatus === RelationshipStatus.FRIENDS ? (
                         <button className="btn btn-ghost btn-sm" disabled style={{ width: '100%' }}>
-                          ✓ Bạn bè
+                          ✓ Đã là bạn bè
                         </button>
                       ) : user.relationshipStatus === RelationshipStatus.PENDING_SENT ? (
                         <button className="btn btn-ghost btn-sm" disabled style={{ width: '100%' }}>

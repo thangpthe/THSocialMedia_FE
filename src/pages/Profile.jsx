@@ -1,48 +1,54 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import Layout from '../components/Layout';
-import { AccountApi, Auth } from '../lib/api';
+import { AccountApi, RelationshipApi, Auth } from '../lib/api';
 import { getInitials } from '../lib/ui';
 import "../styles/Profile.css";
 
-export default function Profile() {
-  const [profile, setProfile] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+const ProfilePage = () => {
   const [searchParams] = useSearchParams();
-  const userId = searchParams.get('id');
-  const navigate = useNavigate();
+  const targetId = searchParams.get('id');
+  const myId = Auth.getUserId();
+  const isMe = !targetId || targetId === myId;
+
+  const [profile, setProfile] = useState(null);
+  const [relStatus, setRelStatus] = useState(0);
 
   useEffect(() => {
-    const fetchProfile = async () => {
+    const loadData = async () => {
       try {
-        const response = await AccountApi.getProfile(userId);
-        setProfile(response.result);
+        const pData = await AccountApi.getProfile(targetId);
+        setProfile(pData.result || pData);
+
+        if (!isMe) {
+          const sData = await RelationshipApi.getStatus(targetId);
+          setRelStatus(sData.result || 0);
+        }
       } catch (err) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
+        console.error(err);
       }
     };
+    loadData();
+  }, [targetId, isMe]);
 
-    fetchProfile();
-  }, [userId]);
+  const handleFriendAction = async () => {
+    if (relStatus === 0) {
+      await RelationshipApi.sendFriendRequest(targetId);
+      alert('✅ Đã gửi lời mời kết bạn!');
+      setRelStatus(1); // pending sent
+    } else if (relStatus === 3) {
+      if (window.confirm('Hủy kết bạn?')) {
+        await RelationshipApi.unfriend(targetId);
+        setRelStatus(0);
+      }
+    }
+  };
 
-  if (loading) {
+  if (!profile) {
     return (
       <Layout>
         <div className="profile-container">
-          <div className="skeleton" style={{ height: '250px', borderRadius: '16px' }}></div>
-        </div>
-      </Layout>
-    );
-  }
-
-  if (error) {
-    return (
-      <Layout>
-        <div className="profile-container">
-          <div className="alert alert-error">Lỗi: {error}</div>
+          <div className="skeleton" style={{ height: '400px', borderRadius: '20px' }} />
         </div>
       </Layout>
     );
@@ -51,35 +57,44 @@ export default function Profile() {
   return (
     <Layout>
       <div className="profile-container">
-        {/* Profile Header */}
         <div className="profile-header-card">
-          <div className="cover-photo"></div>
+          <div className="cover-photo" />
           <div className="profile-info-bar">
             <div className="profile-main">
               <div className="avatar-box">
-                <div className="avatar-placeholder">{getInitials(profile?.fullName || 'U')}</div>
+                <div className="avatar-placeholder">
+                  {getInitials(profile.fullName || profile.username)}
+                </div>
               </div>
               <div className="profile-meta">
-                <h1>{profile?.fullName || 'User Profile'}</h1>
-                <p className="username">@{profile?.username || 'username'}</p>
-                <p className="friends-count">1.2K bạn bè</p>
+                <h1>{profile.fullName || profile.username}</h1>
+                <p className="username">@{profile.username}</p>
+                <p className="friends-count">1.2K bạn bè • {profile.bio || 'Chưa có tiểu sử'}</p>
               </div>
             </div>
+
             <div className="profile-actions">
-              {!userId && <button className="btn btn-primary">Chỉnh sửa hồ sơ</button>}
+              {isMe ? (
+                <button className="btn btn-primary">Chỉnh sửa hồ sơ</button>
+              ) : (
+                <button
+                  onClick={handleFriendAction}
+                  className={`btn ${relStatus === 3 ? 'btn-secondary' : 'btn-primary'}`}
+                >
+                  {relStatus === 3 ? 'Hủy kết bạn' : 'Kết bạn'}
+                </button>
+              )}
               <button className="btn btn-secondary">Nhắn tin</button>
             </div>
           </div>
         </div>
 
-        {/* Profile Content */}
+        {/* Phần nội dung bên dưới */}
         <div className="profile-grid">
           <aside className="profile-sidebar">
             <div className="card">
               <h3>Giới thiệu</h3>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
-                {profile?.bio || 'Chưa có thông tin'}
-              </p>
+              <p>{profile.bio || 'Chưa có thông tin gì...'}</p>
             </div>
           </aside>
 
@@ -88,22 +103,12 @@ export default function Profile() {
               <input
                 type="text"
                 placeholder="Bạn đang nghĩ gì?"
-                className="post-input"
-                style={{
-                  width: '100%',
-                  border: 'none',
-                  background: 'var(--surface-2)',
-                  padding: '1rem',
-                  borderRadius: '20px',
-                  outline: 'none',
-                  cursor: 'pointer',
-                }}
+                style={{ width: '100%', padding: '1rem', borderRadius: '9999px', border: '1px solid var(--border)' }}
               />
             </div>
 
-            {/* Posts Section */}
-            <div className="posts-section">
-              <p style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '2rem' }}>
+            <div className="posts-section card">
+              <p style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-secondary)' }}>
                 Chưa có bài viết nào
               </p>
             </div>
@@ -112,4 +117,6 @@ export default function Profile() {
       </div>
     </Layout>
   );
-}
+};
+
+export default ProfilePage;
