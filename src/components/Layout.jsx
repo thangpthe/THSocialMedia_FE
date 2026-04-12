@@ -1,86 +1,146 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import React, { useState, useEffect, useCallback } from 'react';
+import { NavLink, useNavigate } from 'react-router-dom';
 import { Auth, AccountApi } from '../lib/api';
+import { getInitials } from '../lib/ui';
 import Toast from './Toast';
 import '../styles/Layout.css';
 
-export default function Layout({ children }) {
+const NAV_ITEMS = [
+  { path: '/',        icon: 'home',        label: 'Trang chủ' },
+  { path: '/profile', icon: 'person',      label: 'Trang cá nhân' },
+  { path: '/friends', icon: 'group',       label: 'Bạn bè' },
+  { path: '/messages',icon: 'chat',        label: 'Tin nhắn' },
+];
+
+export default function Layout({ children, title, showSearch = false, onSearch }) {
   const navigate = useNavigate();
-  const location = useLocation();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [user, setUser] = useState(null);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
 
+  // Fetch user info for avatar/name
   useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const res = await AccountApi.getProfile();
-        setUser(res.result);
-      } catch (err) {
-        console.error('Failed to fetch user:', err);
-      }
-    };
+    if (!Auth.isLoggedIn()) return;
+    const cached = Auth.getUsername();
+    if (cached) setUser({ username: cached, fullName: cached });
 
-    if (Auth.isLoggedIn()) {
-      fetchUser();
-    }
+    AccountApi.getProfile()
+      .then((res) => {
+        const u = res?.result ?? res;
+        if (u) {
+          setUser(u);
+          if (u.username) Auth.setUsername(u.username);
+        }
+      })
+      .catch(() => {});
   }, []);
 
-  const handleLogout = async () => {
-    try {
-      await AccountApi.logout();
-    } catch (err) {
-      console.error('Logout error:', err);
-    }
+  const handleLogout = useCallback(() => {
     Auth.clear();
     navigate('/login');
-  };
+  }, [navigate]);
 
-  const isActive = (path) => location.pathname === path;
+  const closeSidebar = () => setSidebarOpen(false);
+
+  const displayName = user?.fullName || user?.username || 'Người dùng';
 
   return (
-    <div className="layout">
-      <aside className={`sidebar ${sidebarOpen ? 'open' : 'closed'}`}>
-        <div className="sidebar-header">
-          <div className="logo">
-            <span className="logo-emoji">📱</span>
-            <span className="logo-text">THSocial</span>
+    <div className="app-shell">
+      {/* ── Mobile topbar ── */}
+      <div className="topbar">
+        <button className="topbar-hamburger" onClick={() => setSidebarOpen(true)}>
+          <span className="material-symbols-outlined">menu</span>
+        </button>
+        <span className="topbar-brand">thsocial</span>
+        <div className="avatar sm">{getInitials(displayName)}</div>
+      </div>
+
+      {/* ── Sidebar overlay (mobile) ── */}
+      {sidebarOpen && (
+        <div className="sidebar-overlay" onClick={closeSidebar} />
+      )}
+
+      {/* ── Sidebar ── */}
+      <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
+        {/* Brand */}
+        <div className="sidebar-brand">
+          <div className="sidebar-brand-icon">
+            <span className="material-symbols-outlined" style={{ fontSize: 18 }}>hub</span>
           </div>
-          <button
-            className="sidebar-toggle"
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-          >
-            {sidebarOpen ? '←' : '→'}
-          </button>
+          <span className="sidebar-brand-name">thsocial</span>
         </div>
 
-        <nav className="nav">
-          <a
-            href="/profile"
-            className={`nav-item ${isActive('/profile') ? 'active' : ''}`}
-          >
-            <span className="nav-icon">👤</span>
-            <span className="nav-label">Trang cá nhân</span>
-          </a>
-          <a
-            href="/friends"
-            className={`nav-item ${isActive('/friends') ? 'active' : ''}`}
-          >
-            <span className="nav-icon">👥</span>
-            <span className="nav-label">Bạn bè</span>
-          </a>
+        {/* Nav */}
+        <nav className="sidebar-nav">
+          {NAV_ITEMS.map(({ path, icon, label }) => (
+            <NavLink
+              key={path}
+              to={path}
+              end={path === '/'}
+              className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
+              onClick={closeSidebar}
+            >
+              <span className="material-symbols-outlined nav-icon">{icon}</span>
+              <span className="nav-label">{label}</span>
+            </NavLink>
+          ))}
         </nav>
 
+        {/* User + Logout */}
         <div className="sidebar-footer">
-          <button className="nav-item logout" onClick={handleLogout}>
-            <span className="nav-icon">🚪</span>
-            <span className="nav-label">Đăng xuất</span>
+          <div
+            className="sidebar-user"
+            onClick={() => { navigate('/profile'); closeSidebar(); }}
+          >
+            <div className="avatar">{getInitials(displayName)}</div>
+            <div style={{ overflow: 'hidden' }}>
+              <div className="sidebar-user-name">{displayName}</div>
+              {user?.username && (
+                <div className="sidebar-user-sub">@{user.username}</div>
+              )}
+            </div>
+          </div>
+          <button className="logout-btn" onClick={handleLogout}>
+            <span className="material-symbols-outlined nav-icon">logout</span>
+            Đăng xuất
           </button>
         </div>
       </aside>
 
-      <main className="main">
+      {/* ── Page area ── */}
+      <div className="page-area">
+        {/* Desktop topbar inside page */}
+        <div className="page-topbar">
+          <span className="page-topbar-title">{title || 'thsocial'}</span>
+
+          {showSearch && (
+            <div className="topbar-search">
+              <span className="material-symbols-outlined topbar-search-icon">search</span>
+              <input
+                type="text"
+                placeholder="Tìm kiếm..."
+                onChange={(e) => onSearch?.(e.target.value)}
+              />
+            </div>
+          )}
+
+          <div className="topbar-actions">
+            <button className="topbar-icon-btn">
+              <span className="material-symbols-outlined">notifications</span>
+            </button>
+            <div
+              className="avatar"
+              style={{ cursor: 'pointer' }}
+              onClick={() => navigate('/profile')}
+              title={displayName}
+            >
+              {getInitials(displayName)}
+            </div>
+          </div>
+        </div>
+
+        {/* Main content slot */}
         {children}
-      </main>
+      </div>
 
       <Toast />
     </div>

@@ -1,4 +1,4 @@
-.friends-container {
+/* .friends-container {
   max-width: 1200px;
   margin: 0 auto;
   padding: var(--spacing-lg);
@@ -168,4 +168,127 @@
   .search-bar .btn {
     width: 100%;
   }
+} */
+/* ── Tabs ── */
+.f-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.f-tab {
+  display: flex; align-items: center; gap: 6px;
+  padding: 8px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-full);
+  background: var(--surface);
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: var(--font-ui);
+}
+.f-tab:hover { background: var(--surface-2); color: var(--text-primary); }
+.f-tab.active {
+  background: var(--primary-subtle);
+  color: var(--primary);
+  border-color: var(--primary-light);
+}
+
+.f-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 18px; height: 18px;
+  background: var(--primary); color: white;
+  font-size: 0.7rem; font-weight: 700;
+  border-radius: var(--r-full);
+  padding: 0 4px;
+}
+
+/* ── Search bar ── */
+.f-search {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 8px 12px 8px 14px;
+  margin-bottom: 20px;
+  box-shadow: var(--shadow-xs);
+}
+.f-search-icon { color: var(--text-tertiary); font-size: 20px; flex-shrink: 0; }
+.f-search input {
+  flex: 1; border: none !important; padding: 0 !important;
+  background: transparent !important; font-size: 0.93rem !important;
+  box-shadow: none !important; border-radius: 0 !important;
+}
+.f-search input:focus { box-shadow: none !important; }
+
+/* ── Grid ── */
+.f-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* ── Card (list-style row) ── */
+.f-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 12px 16px;
+  box-shadow: var(--shadow-xs);
+  transition: all 0.15s;
+}
+.f-card:hover { box-shadow: var(--shadow-sm); border-color: var(--primary-light); }
+
+.f-avatar {
+  width: 46px; height: 46px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary) 0%, #a78bfa 100%);
+  color: white;
+  font-size: 1rem; font-weight: 700; font-family: var(--font-brand);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; cursor: pointer;
+  transition: transform 0.15s;
+}
+.f-avatar:hover { transform: scale(1.05); }
+
+.f-info {
+  flex: 1; min-width: 0;
+  display: flex; flex-direction: column; gap: 2px;
+  cursor: pointer;
+}
+.f-name {
+  font-size: 0.93rem; font-weight: 700; color: var(--text-primary);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.f-info:hover .f-name { color: var(--primary); }
+.f-username {
+  font-size: 0.78rem; color: var(--text-tertiary);
+}
+
+.f-actions {
+  display: flex; gap: 6px; flex-shrink: 0; align-items: center;
+}
+
+/* ── Empty state ── */
+.f-empty {
+  grid-column: 1 / -1;
+  text-align: center; padding: 60px 20px;
+  color: var(--text-tertiary);
+  display: flex; flex-direction: column; align-items: center; gap: 12px;
+}
+.f-empty .material-symbols-outlined { font-size: 48px; }
+.f-empty p { font-size: 0.93rem; }
+
+/* ── Responsive ── */
+@media (max-width: 520px) {
+  .f-tabs { gap: 4px; }
+  .f-tab { padding: 7px 12px; font-size: 0.82rem; }
+  .f-card { padding: 10px 12px; }
+  .f-avatar { width: 40px; height: 40px; font-size: 0.88rem; }
 }
