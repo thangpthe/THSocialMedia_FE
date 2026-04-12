@@ -9,7 +9,6 @@ const NAV_ITEMS = [
   { path: '/',        icon: 'home',        label: 'Trang chủ' },
   { path: '/profile', icon: 'person',      label: 'Trang cá nhân' },
   { path: '/friends', icon: 'group',       label: 'Bạn bè' },
-  { path: '/messages',icon: 'chat',        label: 'Tin nhắn' },
 ];
 
 export default function Layout({ children, title, showSearch = false, onSearch }) {
