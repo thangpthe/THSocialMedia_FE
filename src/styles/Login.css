@@ -1,89 +1,126 @@
+/* src/styles/Login.css */
+
 .login-page {
   display: flex;
   align-items: center;
   justify-content: center;
   min-height: 100vh;
-  background: linear-gradient(135deg, #f8fafc 0%, #ede9fe 100%);
-  padding: var(--spacing-lg);
+  /* Sử dụng màu gradient nhẹ nhàng từ biến hệ thống */
+  background: linear-gradient(135deg, var(--bg) 0%, var(--primary-subtle) 100%);
+  padding: var(--sp-4);
 }
 
 .login-container {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 2rem;
+  grid-template-columns: 1.1fr 1fr; /* Tỉ lệ vàng: phần thương hiệu rộng hơn chút */
   background: var(--surface);
-  border-radius: var(--radius-xl);
+  border-radius: var(--r-xl);
   overflow: hidden;
   box-shadow: var(--shadow-lg);
-  max-width: 1000px;
+  max-width: 960px;
   width: 100%;
+  min-height: 580px;
 }
 
+/* --- PHẦN BÊN TRÁI: BRANDING --- */
 .login-left {
-  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
   color: white;
-  padding: 3rem 2rem;
+  padding: var(--sp-12) var(--sp-8);
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
   text-align: center;
+  position: relative;
 }
 
-.login-brand {
-  margin-bottom: 2rem;
+/* Thêm một chút họa tiết trang trí để phần bên trái bớt trống trải */
+.login-left::before {
+  content: "";
+  position: absolute;
+  top: -10%; left: -10%;
+  width: 200px; height: 200px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 50%;
 }
 
-.brand-logo {
-  font-size: 4rem;
-  margin-bottom: 1rem;
-}
-
-.login-brand h1 {
+.login-left h1 {
   color: white;
-  font-size: 2.5rem;
-  margin: 0;
+  font-size: 3rem;
+  font-weight: 800;
+  margin-bottom: var(--sp-4);
+  letter-spacing: -1px;
 }
 
-.brand-tagline {
-  font-size: 1.125rem;
-  opacity: 0.9;
-  color: white;
-  margin: 1.5rem 0 0;
+.login-left p {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 1.1rem;
+  max-width: 300px;
   line-height: 1.6;
-  max-width: 350px;
 }
 
+/* --- PHẦN BÊN PHẢI: FORM --- */
 .login-right {
-  padding: 3rem 2rem;
+  padding: var(--sp-10) var(--sp-8);
   display: flex;
   flex-direction: column;
   justify-content: center;
 }
 
-@media (max-width: 768px) {
+.login-form {
+  width: 100%;
+  max-width: 360px;
+  margin: 0 auto;
+}
+
+.login-form h2 {
+  font-size: 1.75rem;
+  font-weight: 800;
+  margin-bottom: var(--sp-2);
+  color: var(--text-primary);
+}
+
+.login-form .subtitle {
+  color: var(--text-secondary);
+  margin-bottom: var(--sp-8);
+  font-size: 0.95rem;
+}
+
+/* Khoảng cách giữa các ô input */
+.input-group {
+  margin-bottom: var(--sp-5);
+}
+
+.input-group label {
+  display: block;
+  font-weight: 600;
+  font-size: 0.85rem;
+  margin-bottom: var(--sp-2);
+  color: var(--text-secondary);
+}
+
+/* --- RESPONSIVE (MÀN HÌNH NHỎ) --- */
+@media (max-width: 850px) {
   .login-container {
-    grid-template-columns: 1fr;
-    border-radius: var(--radius-lg);
+    grid-template-columns: 1fr; /* Chuyển thành 1 cột */
+    max-width: 450px;
+    min-height: auto;
   }
 
   .login-left {
-    padding: 2rem;
+    padding: var(--sp-10) var(--sp-6);
   }
 
+  .login-left h1 { font-size: 2.25rem; }
+  
   .login-right {
-    padding: 2rem;
+    padding: var(--sp-10) var(--sp-6);
   }
+}
 
-  .brand-logo {
-    font-size: 3rem;
-  }
-
-  .login-brand h1 {
-    font-size: 2rem;
-  }
-
-  .brand-tagline {
-    font-size: 1rem;
-  }
+@media (max-width: 480px) {
+  .login-page { padding: var(--sp-2); }
+  .login-container { border-radius: var(--r-lg); }
+  .login-left { display: none; } /* Ẩn phần màu tím trên mobile cực nhỏ để tập trung vào form */
 }

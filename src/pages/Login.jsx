@@ -1,189 +1,4 @@
-// import React, { useState } from 'react';
-// import { useNavigate } from 'react-router-dom';
-// import { AuthApi, Auth } from '../lib/api';
-// import '../styles/Login.css';
 
-// const LoginPage = () => {
-//   const navigate = useNavigate();
-
-//   // identifier: username hoặc email — xử lý ở handleSubmit
-//   const [form, setForm] = useState({ identifier: '', password: '' });
-//   const [error, setError] = useState('');
-//   const [loading, setLoading] = useState(false);
-
-//   const handleSubmit = async (e) => {
-//     e.preventDefault();
-//     setError('');
-
-//     // Validate phía client trước khi gọi API
-//     if (!form.identifier.trim()) {
-//       setError('Vui lòng nhập tên đăng nhập hoặc email');
-//       return;
-//     }
-//     if (!form.password) {
-//       setError('Vui lòng nhập mật khẩu');
-//       return;
-//     }
-
-//     setLoading(true);
-//     try {
-//       /*
-//        * LoginCommand gửi lên: { username, email, password }
-//        * Backend LoginCommandHandler phân biệt username/email bằng contains('@')
-//        *
-//        * ApiResponse<LoginResult> trả về:
-//        * {
-//        *   success: true,
-//        *   statusCode: 200,
-//        *   result: { token, userId, username, fullName, avatarUrl }
-//        * }
-//        */
-//       const isEmail = form.identifier.includes('@');
-//       const payload = {
-//         username: isEmail ? ''                  : form.identifier.trim(),
-//         email:    isEmail ? form.identifier.trim() : '',
-//         password: form.password,
-//       };
-
-//       const response = await AuthApi.login(payload);
-
-//       /*
-//        * Backend dùng ApiResponse<T>.ToActionResult() → result nằm trong response.result
-//        * Xử lý cả hai trường hợp phòng backend trả flat object
-//        */
-//       const loginResult = response?.result ?? response;
-
-//       const token    = loginResult?.token;
-//       const userId   = loginResult?.userId;
-//       const username = loginResult?.username;
-//       const fullName = loginResult?.fullName;
-
-//       if (!token) {
-//         throw new Error('Không nhận được token từ server. Vui lòng thử lại.');
-//       }
-
-//       // Lưu JWT + thông tin user
-//       Auth.setToken(token);
-//       if (userId)   Auth.setUserId(String(userId));
-//       if (username) Auth.setUsername(username);
-
-//       // Redirect về trang profile sau khi đăng nhập thành công
-//       navigate('/profile');
-
-//     } catch (err) {
-//       /*
-//        * Mapping message từ backend (§4.3.1.2):
-//        * - "Tên đăng nhập hoặc mật khẩu không đúng" (401 từ LoginCommandHandler)
-//        * - Network error → message từ request() wrapper
-//        */
-//       const msg = err?.message || 'Đăng nhập thất bại. Vui lòng thử lại.';
-//       setError(msg);
-//     } finally {
-//       setLoading(false);
-//     }
-//   };
-
-//   return (
-//     <div className="login-page">
-//       <div className="login-container">
-
-//         {/* Left side — Brand */}
-//         <div className="login-left">
-//           <div className="login-brand">
-//             <div className="brand-logo">📱</div>
-//             <h1>TH Social</h1>
-//           </div>
-//           <p className="brand-tagline">
-//             Kết nối, chia sẻ và khám phá những khoảnh khắc tuyệt vời cùng cộng đồng
-//           </p>
-//         </div>
-
-//         {/* Right side — Login Form */}
-//         <div className="login-right">
-//           <div className="login-header">
-//             <h2>Đăng nhập</h2>
-//             <p>Chào mừng bạn quay trở lại!</p>
-//           </div>
-
-//           <form onSubmit={handleSubmit} className="login-form" noValidate>
-
-//             {/* Error message (§4.3.1.2 output) */}
-//             {error && (
-//               <div
-//                 className="error-message"
-//                 role="alert"
-//                 style={{
-//                   color: '#dc2626',
-//                   backgroundColor: '#fef2f2',
-//                   border: '1px solid #fecaca',
-//                   padding: '10px 14px',
-//                   borderRadius: '8px',
-//                   marginBottom: '16px',
-//                   fontSize: '14px',
-//                 }}
-//               >
-//                 {error}
-//               </div>
-//             )}
-
-//             {/* Input: Tên đăng nhập / Email (§4.3.1.2) */}
-//             <div className="input-group">
-//               <label htmlFor="identifier">Tên đăng nhập / Email</label>
-//               <input
-//                 id="identifier"
-//                 type="text"
-//                 placeholder="Nhập tên đăng nhập hoặc email"
-//                 value={form.identifier}
-//                 onChange={(e) => setForm({ ...form, identifier: e.target.value })}
-//                 autoComplete="username"
-//                 disabled={loading}
-//               />
-//             </div>
-
-//             {/* Input: Mật khẩu (§4.3.1.2) */}
-//             <div className="input-group">
-//               <label htmlFor="password">Mật khẩu</label>
-//               <input
-//                 id="password"
-//                 type="password"
-//                 placeholder="••••••••"
-//                 value={form.password}
-//                 onChange={(e) => setForm({ ...form, password: e.target.value })}
-//                 autoComplete="current-password"
-//                 disabled={loading}
-//               />
-//             </div>
-
-//             {/* Submit — nút "Đăng nhập" (§4.3.1.2) */}
-//             <button
-//               type="submit"
-//               disabled={loading}
-//               className="btn btn-primary btn-lg w-full"
-//             >
-//               {loading
-//                 ? <><span className="spinner" /> Đang đăng nhập...</>
-//                 : 'Đăng nhập ngay'
-//               }
-//             </button>
-
-//             <p
-//               className="text-center text-sm text-slate-500"
-//               style={{ marginTop: '1.5rem' }}
-//             >
-//               Chưa có tài khoản?{' '}
-//               <a href="/register" className="text-primary font-semibold hover:underline">
-//                 Đăng ký miễn phí
-//               </a>
-//             </p>
-
-//           </form>
-//         </div>
-//       </div>
-//     </div>
-//   );
-// };
-
-// export default LoginPage;
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -265,87 +80,156 @@ const LoginPage = () => {
     }
   };
 
-  return (
-    <div className="login-page">
-      <div className="login-container">
+  // return (
+  //   <div className="login-page">
+  //     <div className="login-container">
 
-        <div className="login-left">
-          <div className="login-brand">
-            <div className="brand-logo">📱</div>
-            <h1>TH Social</h1>
-          </div>
-          <p className="brand-tagline">
-            Kết nối, chia sẻ và khám phá những khoảnh khắc tuyệt vời cùng cộng đồng
-          </p>
-        </div>
+  //       <div className="login-left">
+  //         <div className="login-brand">
+  //           <div className="brand-logo">📱</div>
+  //           <h1>TH Social</h1>
+  //         </div>
+  //         <p className="brand-tagline">
+  //           Kết nối, chia sẻ và khám phá những khoảnh khắc tuyệt vời cùng cộng đồng
+  //         </p>
+  //       </div>
 
-        <div className="login-right">
-          <div className="login-header">
-            <h2>Đăng nhập</h2>
-            <p>Chào mừng bạn quay trở lại!</p>
-          </div>
+  //       <div className="login-right">
+  //         <div className="login-header">
+  //           <h2>Đăng nhập</h2>
+  //           <p>Chào mừng bạn quay trở lại!</p>
+  //         </div>
 
-          <form onSubmit={handleSubmit} className="login-form" noValidate>
+  //         <form onSubmit={handleSubmit} className="login-form" noValidate>
 
-            {error && (
-              <div className="error-message" role="alert" style={{
-                color: '#dc2626', backgroundColor: '#fef2f2',
-                border: '1px solid #fecaca', padding: '10px 14px',
-                borderRadius: '8px', marginBottom: '16px', fontSize: '14px',
-              }}>
-                {error}
-              </div>
-            )}
+  //           {error && (
+  //             <div className="error-message" role="alert" style={{
+  //               color: '#dc2626', backgroundColor: '#fef2f2',
+  //               border: '1px solid #fecaca', padding: '10px 14px',
+  //               borderRadius: '8px', marginBottom: '16px', fontSize: '14px',
+  //             }}>
+  //               {error}
+  //             </div>
+  //           )}
 
-            <div className="input-group">
-              <label htmlFor="identifier">Tên đăng nhập</label>
-              <input
-                id="identifier"
-                type="text"
-                placeholder="Nhập tên đăng nhập"
-                value={form.identifier}
-                onChange={(e) => setForm({ ...form, identifier: e.target.value })}
-                autoComplete="username"
-                disabled={loading}
-              />
-            </div>
+  //           <div className="input-group">
+  //             <label htmlFor="identifier">Tên đăng nhập</label>
+  //             <input
+  //               id="identifier"
+  //               type="text"
+  //               placeholder="Nhập tên đăng nhập"
+  //               value={form.identifier}
+  //               onChange={(e) => setForm({ ...form, identifier: e.target.value })}
+  //               autoComplete="username"
+  //               disabled={loading}
+  //             />
+  //           </div>
 
-            <div className="input-group">
-              <label htmlFor="password">Mật khẩu</label>
-              <input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                value={form.password}
-                onChange={(e) => setForm({ ...form, password: e.target.value })}
-                autoComplete="current-password"
-                disabled={loading}
-              />
-            </div>
+  //           <div className="input-group">
+  //             <label htmlFor="password">Mật khẩu</label>
+  //             <input
+  //               id="password"
+  //               type="password"
+  //               placeholder="••••••••"
+  //               value={form.password}
+  //               onChange={(e) => setForm({ ...form, password: e.target.value })}
+  //               autoComplete="current-password"
+  //               disabled={loading}
+  //             />
+  //           </div>
 
-            <button
-              type="submit"
+  //           <button
+  //             type="submit"
+  //             disabled={loading}
+  //             className="btn btn-primary btn-lg w-full"
+  //           >
+  //             {loading
+  //               ? <><span className="spinner" /> Đang đăng nhập...</>
+  //               : 'Đăng nhập ngay'
+  //             }
+  //           </button>
+
+  //           <p style={{ textAlign: 'center', fontSize: '14px', marginTop: '1.5rem', color: '#64748b' }}>
+  //             Chưa có tài khoản?{' '}
+  //             <a href="/register" style={{ color: '#2563eb', fontWeight: 600 }}>
+  //               Đăng ký miễn phí
+  //             </a>
+  //           </p>
+
+  //         </form>
+  //       </div>
+  //     </div>
+  //   </div>
+  // );
+
+
+  // src/pages/Login.jsx (Đoạn mã chỉnh sửa phần JSX)
+return (
+  <div className="login-page">
+    <div className="login-container">
+      {/* Cột trái: Thương hiệu */}
+      <div className="login-left">
+        <span className="material-symbols-outlined" style={{fontSize: '64px', marginBottom: '20px'}}>hub</span>
+        <h1>thsocial</h1>
+        <p>Kết nối cộng đồng, chia sẻ khoảnh khắc và lan tỏa niềm vui mỗi ngày.</p>
+      </div>
+
+      {/* Cột phải: Form */}
+      <div className="login-right">
+        <form onSubmit={handleSubmit} className="login-form">
+          <h2>Chào mừng trở lại</h2>
+          <p className="subtitle">Vui lòng nhập thông tin để truy cập tài khoản của bạn.</p>
+
+          {error && <div className="alert alert-error" style={{marginBottom: '20px'}}>{error}</div>}
+
+          <div className="input-group">
+            <label htmlFor="identifier">Username</label>
+            <input
+              id="identifier"
+              type="text"
+              placeholder="ten.dang.nhap@example.com"
+              value={form.identifier}
+              onChange={(e) => setForm({ ...form, identifier: e.target.value })}
               disabled={loading}
-              className="btn btn-primary btn-lg w-full"
-            >
-              {loading
-                ? <><span className="spinner" /> Đang đăng nhập...</>
-                : 'Đăng nhập ngay'
-              }
-            </button>
+              autoComplete="username"
+            />
+          </div>
 
-            <p style={{ textAlign: 'center', fontSize: '14px', marginTop: '1.5rem', color: '#64748b' }}>
+          <div className="input-group">
+            <label htmlFor="password">Mật khẩu</label>
+            <input
+              id="password"
+              type="password"
+              placeholder="••••••••"
+              value={form.password}
+              onChange={(e) => setForm({ ...form, password: e.target.value })}
+              disabled={loading}
+              autoComplete="current-password"
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="btn btn-primary btn-lg btn-full"
+            style={{marginTop: '10px'}}
+          >
+            {loading ? <span className="spinner"></span> : 'Đăng nhập ngay'}
+          </button>
+
+          <div style={{ marginTop: '24px', textAlign: 'center' }}>
+            <p style={{ fontSize: '14px', color: 'var(--text-tertiary)' }}>
               Chưa có tài khoản?{' '}
-              <a href="/register" style={{ color: '#2563eb', fontWeight: 600 }}>
+              <a href="/register" style={{ color: 'var(--primary)', fontWeight: 700 }}>
                 Đăng ký miễn phí
               </a>
             </p>
-
-          </form>
-        </div>
+          </div>
+        </form>
       </div>
     </div>
-  );
+  </div>
+);
 };
 
 export default LoginPage;
