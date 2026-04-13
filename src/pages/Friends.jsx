@@ -439,7 +439,7 @@ export default function Friends() {
             <span className="material-symbols-outlined f-search-icon">search</span>
             <input
               type="text"
-              placeholder="Nhập username chính xác..."
+              placeholder="Tìm kiếm người dùng..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
