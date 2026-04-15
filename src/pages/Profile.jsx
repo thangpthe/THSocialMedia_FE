@@ -1,595 +1,429 @@
-// import React, { useEffect, useState } from 'react';
-// import { useSearchParams } from 'react-router-dom';
+// import React, { useEffect, useState, useCallback } from 'react';
+// import { useSearchParams, Link } from 'react-router-dom';
 // import Layout from '../components/Layout';
-// import { AccountApi, Auth, PostApi } from '../lib/api'; // Đảm bảo import PostApi
-// import { getInitials } from '../lib/ui';
-// import "../styles/Profile.css";
+// import { AccountApi } from '../lib/api/account.api';
+// import { RelationshipApi } from '../lib/api/relationship.api';
+// import { Auth } from '../lib/api/baseApi';
+// import { PostApi } from '../lib/api/post.api';
+// import { getInitials, timeAgo, showToast } from '../lib/ui';
 
-// const ProfilePage = () => {
+// import "../styles/Profile.css";
+// import "../styles/Home.css"; // Import CSS của Home để tái sử dụng giao diện Bài viết & Bình luận
+
+// export default function ProfilePage() {
 //   const [searchParams] = useSearchParams();
 //   const targetId = searchParams.get('id');
-//   const myId = Auth.getUserId();
-//   const isMe = !targetId || targetId === myId;
+//   const myId = String(Auth.getUserId());
+  
+//   // Xác định ID đang xem (Nếu không có targetId trên URL -> Đang xem trang của chính mình)
+//   const displayId = targetId || myId;
+//   const isMe = displayId === myId;
 
 //   const [profile, setProfile] = useState(null);
 //   const [loading, setLoading] = useState(true);
 
-//   // --- STATE BÀI VIẾT ---
-//   const [posts, setPosts] = useState([]); // Lưu danh sách bài viết
+//   // --- STATE BÀI VIẾT & BÌNH LUẬN ---
+//   const [posts, setPosts] = useState([]); 
 //   const [postContent, setPostContent] = useState('');
-//   const [visibility, setVisibility] = useState(0); 
 //   const [isPosting, setIsPosting] = useState(false);
 
-//   // Hàm tải danh sách bài viết
-//   const loadPosts = async () => {
+//   const [openComments, setOpenComments] = useState({});
+//   const [expandedComments, setExpandedComments] = useState({});
+//   const [commentInputs, setCommentInputs] = useState({});
+//   const [isCommenting, setIsCommenting] = useState({});
+
+//   // --- STATE QUAN HỆ (NẾU XEM TRANG NGƯỜI KHÁC) ---
+//   const [relationshipStatus, setRelationshipStatus] = useState('NONE'); 
+//   const [actionLoading, setActionLoading] = useState(false);
+
+//   const loadData = useCallback(async () => {
 //     try {
-//       // Giả sử API getPosts lấy danh sách bài viết của user. 
-//       // (Nếu API backend yêu cầu truyền targetId thì bạn truyền vào nhé)
-//       const res = await PostApi.getPosts(); 
-//       // API có thể bọc data trong res.result hoặc trả về trực tiếp mảng
-//       setPosts(res.result || res || []); 
+//       setLoading(true);
+      
+//       // 1. Tải thông tin Profile
+//       const pRes = await AccountApi.getProfile(displayId);
+//       setProfile(pRes.result || pRes);
+
+//       // 2. Tải Bài viết & Lọc theo displayId
+//       const postRes = await PostApi.getPosts();
+//       const allPosts = Array.isArray(postRes) ? postRes : (postRes?.result || postRes?.value || []);
+//       const userPosts = allPosts.filter(p => String(p.userId) === String(displayId));
+//       setPosts(userPosts);
+
+//       // 3. Tải trạng thái quan hệ (Nếu không phải mình)
+//       if (!isMe) {
+//         const [friendsRes, requestsRes] = await Promise.all([
+//           RelationshipApi.getFriends(),
+//           RelationshipApi.getPendingRequests()
+//         ]);
+//         const friends = friendsRes.result || [];
+//         const requests = requestsRes.result || [];
+//         const uId = String(displayId);
+        
+//         if (friends.some(f => String(f.userId) === uId || String(f.friendId) === uId)) {
+//           setRelationshipStatus('FRIENDS');
+//         } else {
+//           const req = requests.find(r => String(r.userId) === uId || String(r.friendId) === uId);
+//           if (req) {
+//             setRelationshipStatus(String(req.friendId) === myId ? 'PENDING_RECEIVED' : 'PENDING_SENT');
+//           } else {
+//             setRelationshipStatus('NONE');
+//           }
+//         }
+//       }
 //     } catch (err) {
-//       console.error("Lỗi tải bài viết:", err);
+//       console.error(err);
+//       showToast('Lỗi khi tải thông tin', 'error');
+//     } finally {
+//       setLoading(false);
 //     }
-//   };
+//   }, [displayId, isMe, myId]);
 
 //   useEffect(() => {
-//     const loadProfile = async () => {
-//       try {
-//         setLoading(true);
-//         const data = await AccountApi.getProfile(targetId);
-//         setProfile(data.result || data);
-        
-//         // Tải danh sách bài viết sau khi tải xong profile
-//         await loadPosts();
-//       } catch (err) {
-//         console.error("Lỗi tải profile:", err);
-//       } finally {
-//         setLoading(false);
-//       }
-//     };
-//     loadProfile();
-//   }, [targetId]);
+//     loadData();
+//   }, [loadData]);
 
-//   // --- HÀM XỬ LÝ ĐĂNG BÀI VIẾT ---
+//   // --- CÁC HÀM XỬ LÝ BÀI VIẾT & BÌNH LUẬN ---
 //   const handleCreatePost = async () => {
 //     if (!postContent.trim()) return;
-    
 //     setIsPosting(true);
 //     try {
-//       const payload = {
-//         content: postContent,
-//         visibility: Number(visibility),
-//         fileUrls: null 
-//       };
-
-//       await PostApi.createPost(payload);
-      
-//       setPostContent(''); // 1. Xóa rỗng ô nhập
-//       await loadPosts();  // 2. GỌI LẠI HÀM LOAD POSTS ĐỂ CẬP NHẬT UI NGAY LẬP TỨC
-      
-//       // Không dùng alert nữa để UX mượt mà hơn, hoặc bạn có thể dùng toast (showToast)
-//     } catch (error) {
-//       console.error("Lỗi khi đăng bài:", error);
-//       alert(error.message || "Đã xảy ra lỗi khi đăng bài.");
+//       await PostApi.createPost({ content: postContent, visibility: 0, fileUrls: null });
+//       setPostContent('');
+//       showToast('Đăng bài thành công!', 'success');
+//       await loadData();
+//     } catch (err) {
+//       showToast(err.message || 'Lỗi khi đăng bài', 'error');
 //     } finally {
 //       setIsPosting(false);
 //     }
 //   };
 
-//   if (loading) {
-//     return (
-//       <Layout>
-//         <div className="profile-container">
-//           <div className="skeleton" style={{ height: '420px', borderRadius: '20px' }} />
-//         </div>
-//       </Layout>
-//     );
-//   }
+//   const toggleComments = (postId) => setOpenComments(prev => ({ ...prev, [postId]: !prev[postId] }));
+//   const handleExpandComments = (postId) => setExpandedComments(prev => ({ ...prev, [postId]: true }));
 
-//   const name = profile?.fullName || profile?.username || "Nguyễn Văn A";
-//   const username = profile?.username || "nguyenvana";
-//   const bio = profile?.bio || "Chưa có thông tin giới thiệu";
+//   const handlePostComment = async (postId) => {
+//     const content = commentInputs[postId];
+//     if (!content || !content.trim()) return;
+//     setIsCommenting(prev => ({ ...prev, [postId]: true }));
+//     try {
+//       await PostApi.commentPost(postId, { content: content.trim() });
+//       setCommentInputs(prev => ({ ...prev, [postId]: '' }));
+//       setExpandedComments(prev => ({ ...prev, [postId]: true })); // Tự động hiển thị hết bình luận sau khi gõ
+//       await loadData();
+//     } catch (err) {
+//       showToast(err.message || 'Lỗi khi gửi bình luận', 'error');
+//     } finally {
+//       setIsCommenting(prev => ({ ...prev, [postId]: false }));
+//     }
+//   };
+
+//   // --- GIAO DIỆN ---
+//   if (loading && !profile) return <Layout><div style={{textAlign: 'center', padding: '40px'}}>Đang tải trang cá nhân...</div></Layout>;
 
 //   return (
 //     <Layout>
-//       <div className="profile-container" style={{ maxWidth: '1100px', margin: '0 auto' }}>
-
-//         {/* Cover + Avatar + Info */}
-//         <div className="profile-header-card">
-//           <div 
-//             className="cover-photo"
-//             style={{
-//               background: 'linear-gradient(135deg, #8b5cf6, #06b6d4)',
-//               backgroundImage: 'url("https://picsum.photos/id/1015/1200/400")',
-//               backgroundSize: 'cover',
-//               backgroundPosition: 'center',
-//               height: '380px',
-//               position: 'relative'
-//             }}
-//           />
-
-//           <div className="profile-info-bar">
-//             <div className="profile-main">
-//               {/* Avatar */}
-//               <div className="avatar-box" style={{ border: '6px solid white' }}>
-//                 <div className="avatar-placeholder" style={{ fontSize: '3.5rem' }}>
-//                   {getInitials(name)}
-//                 </div>
+//       <div className="page-content" style={{maxWidth: '900px', margin: '0 auto'}}>
+        
+//         {/* --- ẢNH BÌA VÀ ẢNH ĐẠI DIỆN --- */}
+//         <div className="p-header-card">
+//           <div className="p-cover" />
+//           <div className="p-info-bar">
+//             <div className="p-left">
+//               <div className="p-avatar-wrap">
+//                 <div className="p-avatar">{getInitials(profile?.fullName || profile?.username || 'U')}</div>
 //               </div>
-
-//               <div className="profile-meta">
-//                 <h1 style={{ fontSize: '2.2rem', marginBottom: '4px' }}>{name}</h1>
-//                 <p className="username" style={{ fontSize: '1.1rem' }}>@{username}</p>
-//                 <p style={{ color: '#64748b', marginTop: '6px' }}>
-//                   1.2K bạn bè • 45 bạn chung
-//                 </p>
+//               <div className="p-meta">
+//                 <h1>{profile?.fullName || profile?.username || 'Người dùng'}</h1>
+//                 <div className="p-username">@{profile?.username}</div>
+//                 {/* <div className="p-friends">
+//                   <span className="material-symbols-outlined" style={{fontSize: 16}}>group</span>
+//                   {profile?.friendCount || 0} bạn bè
+//                 </div> */}
 //               </div>
 //             </div>
-
-//             {/* Action buttons */}
-//             <div className="profile-actions" style={{ display: 'flex', gap: '12px' }}>
-//               {isMe ? (
-//                 <>
-//                   <button className="btn btn-primary" style={{ background: '#8b5cf6', color: 'white', padding: '10px 24px', borderRadius: '9999px', fontWeight: 600 }}>
-//                     + Thêm vào tin
-//                   </button>
-//                   <button className="btn btn-secondary" style={{ padding: '10px 24px', borderRadius: '9999px' }}>
-//                     ✏️ Chỉnh sửa trang cá nhân
-//                   </button>
-//                 </>
-//               ) : (
-//                 <button className="btn btn-primary" style={{ padding: '10px 28px', borderRadius: '9999px' }}>
-//                   Kết bạn
-//                 </button>
-//               )}
-//             </div>
+            
+//             {/* Nút hành động tương tác với User */}
+//             {!isMe && (
+//               <div className="p-actions">
+//                 {relationshipStatus === 'FRIENDS' ? (
+//                   <button className="btn btn-secondary btn-sm" disabled>Bạn bè</button>
+//                 ) : relationshipStatus === 'PENDING_SENT' ? (
+//                   <button className="btn btn-secondary btn-sm" disabled>Đã gửi lời mời</button>
+//                 ) : relationshipStatus === 'PENDING_RECEIVED' ? (
+//                   <button className="btn btn-primary btn-sm" onClick={() => window.location.href='/friends'}>Kiểm tra lời mời</button>
+//                 ) : (
+//                   <button className="btn btn-primary btn-sm">+ Thêm bạn bè</button> // Bạn có thể gắn hàm sendRequest vào đây
+//                 )}
+//                 <button className="btn btn-secondary btn-sm">Nhắn tin</button>
+//               </div>
+//             )}
 //           </div>
 //         </div>
 
-//         {/* Tabs */}
-//         <div style={{ display: 'flex', gap: '2rem', borderBottom: '1px solid #e2e8f0', marginBottom: '2rem', padding: '0 1rem' }}>
-//           <div style={{ padding: '14px 0', borderBottom: '3px solid #8b5cf6', color: '#8b5cf6', fontWeight: 600, cursor: 'pointer' }}>
-//             Bài viết
-//           </div>
-//           <div style={{ padding: '14px 0', color: '#64748b', cursor: 'pointer' }}>Giới thiệu</div>
-//           <div style={{ padding: '14px 0', color: '#64748b', cursor: 'pointer' }}>Bạn bè</div>
-//         </div>
-
-//         <div className="profile-grid">
-//           {/* CỘT TRÁI */}
-//           <aside className="profile-sidebar">
-//             <div className="card" style={{ marginBottom: '1.5rem' }}>
-//               <h3 style={{ marginBottom: '1rem' }}>Giới thiệu</h3>
-//               <p style={{ lineHeight: '1.6', color: '#475569' }}>{bio}</p>
+//         {/* --- KHU VỰC BÀI VIẾT (CỘT 2) VÀ THÔNG TIN (CỘT 1) --- */}
+//         <div className="p-grid">
+          
+//           <aside className="p-sidebar">
+//             <div className="card">
+//               <h3 style={{ fontSize: '1.1rem', marginBottom: 12 }}>Giới thiệu</h3>
+//               <p style={{ fontSize: '0.9rem' }}>{profile?.bio || 'Chưa có thông tin giới thiệu.'}</p>
+              
+//               <div style={{ marginTop: 12, fontSize: '0.85rem', color: 'var(--text-tertiary)' }}>
+//                 <div>📧 Email: {profile?.email || '—'}</div>
+//                 <div style={{ marginTop: 6 }}>📅 Tham gia: {profile?.createdAt ? new Date(profile.createdAt).toLocaleDateString('vi-VN') : '—'}</div>
+//               </div>
 //             </div>
 //           </aside>
 
-//           {/* CỘT PHẢI - Bài viết */}
-//           <main className="profile-content">
-            
-//             {/* TẠO BÀI VIẾT */}
+//           <main className="p-main">
+//             {/* KHUNG TẠO BÀI VIẾT: Chỉ hiển thị trên trang của chính mình */}
 //             {isMe && (
-//               <div className="card" style={{ marginBottom: '1.5rem', padding: '1.25rem' }}>
-//                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-//                   <div className="avatar-placeholder" style={{ width: '42px', height: '42px', fontSize: '1.4rem', flexShrink: 0 }}>
-//                     {getInitials(name)}
+//               <div className="card post-creator" style={{ marginBottom: 16, padding: '16px 20px' }}>
+//                 <div className="creator-row">
+//                   <div className="avatar sm">{getInitials(profile?.fullName || 'U')}</div>
+//                   <textarea
+//                     value={postContent}
+//                     onChange={(e) => setPostContent(e.target.value)}
+//                     placeholder="Bạn đang nghĩ gì thế?"
+//                     className="creator-textarea"
+//                     rows={2}
+//                   />
+//                 </div>
+//                 <div className="creator-footer">
+//                   <div className="creator-attachments">
+//                     <button className="attach-btn" title="Ảnh/Video">
+//                       <span className="material-symbols-outlined" style={{ color: '#10b981' }}>image</span> Ảnh/Video
+//                     </button>
 //                   </div>
-//                   <div style={{ flex: 1 }}>
-//                     <textarea
-//                       value={postContent}
-//                       onChange={(e) => setPostContent(e.target.value)}
-//                       placeholder={`${name} ơi, bạn đang nghĩ gì?`}
-//                       rows="3"
-//                       style={{
-//                         width: '100%',
-//                         padding: '14px 20px',
-//                         borderRadius: '16px',
-//                         border: '1px solid #e2e8f0',
-//                         background: '#f8fafc',
-//                         fontSize: '1.05rem',
-//                         resize: 'none',
-//                         outline: 'none',
-//                         fontFamily: 'inherit'
-//                       }}
-//                     />
-                    
-//                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px' }}>
-//                       <select 
-//                         value={visibility}
-//                         onChange={(e) => setVisibility(e.target.value)}
-//                         style={{
-//                           padding: '8px 12px',
-//                           borderRadius: '8px',
-//                           border: '1px solid #e2e8f0',
-//                           background: '#f8fafc',
-//                           outline: 'none',
-//                           color: '#475569',
-//                           fontWeight: '500',
-//                           cursor: 'pointer'
-//                         }}
-//                       >
-//                         <option value={0}>🌍 Công khai</option>
-//                         <option value={1}>👥 Bạn bè</option>
-//                         <option value={2}>🔒 Chỉ mình tôi</option>
-//                       </select>
-
-//                       <button 
-//                         onClick={handleCreatePost}
-//                         disabled={isPosting || !postContent.trim()}
-//                         style={{
-//                           background: (isPosting || !postContent.trim()) ? '#cbd5e1' : '#8b5cf6',
-//                           color: 'white',
-//                           padding: '10px 24px',
-//                           borderRadius: '9999px',
-//                           fontWeight: 600,
-//                           border: 'none',
-//                           cursor: (isPosting || !postContent.trim()) ? 'not-allowed' : 'pointer',
-//                           transition: 'background 0.2s'
-//                         }}
-//                       >
-//                         {isPosting ? 'Đang đăng...' : 'Đăng bài'}
-//                       </button>
-//                     </div>
-//                   </div>
+//                   <button onClick={handleCreatePost} disabled={isPosting || !postContent.trim()} className="btn btn-primary">
+//                     {isPosting ? 'Đang đăng...' : 'Đăng bài'}
+//                   </button>
 //                 </div>
 //               </div>
 //             )}
 
-//             {/* DANH SÁCH BÀI VIẾT (Tự động cập nhật) */}
-//             {posts.length === 0 ? (
-//                <div className="card" style={{ padding: '2rem', textAlign: 'center', color: '#64748b' }}>
-//                   Không có bài viết nào để hiển thị.
-//                </div>
-//             ) : (
-//                posts.map((post, index) => (
-//                   <div key={post.id || index} className="card" style={{ marginBottom: '1.5rem' }}>
-//                     <div style={{ padding: '1rem 1.25rem', borderBottom: '1px solid #f1f5f9' }}>
-//                       <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-//                         {/* Lấy avatar người đăng hoặc fallback */}
-//                         <div className="avatar-placeholder" style={{ width: '40px', height: '40px' }}>
-//                           {getInitials(post.authorName || name)}
-//                         </div>
-//                         <div>
-//                           <strong>{post.authorName || name}</strong>
-//                           <p style={{ fontSize: '0.85rem', color: '#64748b', margin: 0 }}>
-//                             Vừa xong • {post.visibility === 0 ? '🌍 Công khai' : post.visibility === 1 ? '👥 Bạn bè' : '🔒 Riêng tư'}
-//                           </p>
+//             {/* DANH SÁCH BÀI VIẾT CỦA USER ĐÓ */}
+//             <div className="feed-list">
+//               {posts.length === 0 ? (
+//                 <div className="card" style={{ textAlign: 'center', padding: '48px 20px', color: 'var(--text-tertiary)' }}>
+//                   <span className="material-symbols-outlined" style={{ fontSize: 44, marginBottom: 12, display: 'block' }}>article</span>
+//                   <p style={{ fontSize: '0.9rem' }}>Chưa có bài viết nào</p>
+//                 </div>
+//               ) : (
+//                 posts.map(post => {
+//                   const isExpanded = expandedComments[post.id];
+//                   const visibleComments = isExpanded ? post.comments : (post.comments?.slice(0, 2) || []);
+
+//                   return (
+//                     <article key={post.id} className="card post-card" style={{ marginBottom: '16px' }}>
+//                       <div className="post-header">
+//                         <div className="post-author">
+//                           <Link to={`/profile?id=${post.userId}`}>
+//                             <div className="avatar">{getInitials(post.authorName || post.username || 'U')}</div>
+//                           </Link>
+//                           <div>
+//                             <Link to={`/profile?id=${post.userId}`} className="author-name">
+//                               {post.authorName || post.username || 'Người dùng'}
+//                             </Link>
+//                             <div className="post-time">{timeAgo(post.createdAt)}</div>
+//                           </div>
 //                         </div>
 //                       </div>
-//                     </div>
-                    
-//                     <div style={{ padding: '1.25rem' }}>
-//                       {/* Đổ nội dung bài viết ra */}
-//                       <p style={{ whiteSpace: 'pre-wrap' }}>{post.content}</p>
-                      
-//                       {/* Đổ hình ảnh (nếu có FileUrls) */}
-//                       {post.fileUrls && (
-//                         <img
-//                           src={post.fileUrls}
-//                           alt="post media"
-//                           style={{ width: '100%', borderRadius: '16px', marginTop: '1rem' }}
-//                         />
+
+//                       <div className="post-body">
+//                         <p>{post.content}</p>
+//                       </div>
+
+//                       <div className="post-actions">
+//                         <button className="action-btn">
+//                           <span className="material-symbols-outlined">favorite</span> Thích
+//                         </button>
+//                         <button className="action-btn" onClick={() => toggleComments(post.id)}>
+//                           <span className="material-symbols-outlined">chat_bubble</span> 
+//                           Bình luận {post.commentsCount > 0 ? `(${post.commentsCount})` : ''}
+//                         </button>
+//                         <button className="action-btn">
+//                           <span className="material-symbols-outlined">share</span> Chia sẻ
+//                         </button>
+//                       </div>
+
+//                       {/* --- KHU VỰC BÌNH LUẬN --- */}
+//                       {openComments[post.id] && (
+//                         <div className="comments-section" style={{ marginTop: '16px', borderTop: '1px solid var(--border-light)', paddingTop: '16px' }}>
+                          
+//                           {post.comments && post.comments.length > 0 ? (
+//                             <div className="comments-list" style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '16px' }}>
+                              
+//                               {/* Danh sách 2 bình luận đầu hoặc tất cả */}
+//                               {visibleComments.map(cmt => (
+//                                 <div key={cmt.id} className="comment-item" style={{ display: 'flex', gap: '10px' }}>
+//                                   <div className="avatar sm" style={{ width: '32px', height: '32px', fontSize: '0.8rem' }}>
+//                                     {getInitials(cmt.userName)}
+//                                   </div>
+//                                   <div className="comment-content" style={{ background: 'var(--surface-2)', padding: '8px 12px', borderRadius: '12px', flex: 1 }}>
+//                                     <Link to={`/profile?id=${cmt.userId}`} style={{ fontWeight: 600, fontSize: '0.85rem', color: 'var(--text-primary)' }}>
+//                                       {cmt.userName}
+//                                     </Link>
+//                                     <p style={{ fontSize: '0.9rem', color: 'var(--text-primary)', marginTop: '2px', wordBreak: 'break-word' }}>
+//                                       {cmt.content}
+//                                     </p>
+//                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', marginTop: '4px', display: 'block' }}>
+//                                       {timeAgo(cmt.createdAt)}
+//                                     </span>
+//                                   </div>
+//                                 </div>
+//                               ))}
+
+//                               {/* NÚT XEM THÊM */}
+//                               {!isExpanded && post.comments.length > 2 && (
+//                                 <button 
+//                                   onClick={() => handleExpandComments(post.id)}
+//                                   style={{
+//                                     background: 'none', border: 'none', color: 'var(--text-secondary)',
+//                                     fontSize: '0.85rem', fontWeight: '600', cursor: 'pointer',
+//                                     textAlign: 'left', padding: '4px 0', alignSelf: 'flex-start'
+//                                   }}
+//                                 >
+//                                   Xem thêm {post.comments.length - 2} bình luận...
+//                                 </button>
+//                               )}
+//                             </div>
+//                           ) : (
+//                             <p style={{ fontSize: '0.85rem', color: 'var(--text-tertiary)', textAlign: 'center', marginBottom: '16px' }}>Chưa có bình luận nào.</p>
+//                           )}
+
+//                           {/* Ô nhập bình luận */}
+//                           <div className="comment-input-area" style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+//                             <div className="avatar sm" style={{ width: '32px', height: '32px', fontSize: '0.8rem' }}>
+//                               {getInitials(Auth.getUsername() || 'U')}
+//                             </div>
+//                             <input 
+//                               type="text" 
+//                               placeholder="Viết bình luận..." 
+//                               value={commentInputs[post.id] || ''}
+//                               onChange={(e) => setCommentInputs(prev => ({ ...prev, [post.id]: e.target.value }))}
+//                               onKeyDown={(e) => e.key === 'Enter' && handlePostComment(post.id)}
+//                               style={{
+//                                 flex: 1, padding: '8px 16px', borderRadius: '20px', 
+//                                 border: '1px solid var(--border)', background: 'var(--surface)', fontSize: '0.9rem'
+//                               }}
+//                             />
+//                             <button 
+//                               onClick={() => handlePostComment(post.id)}
+//                               disabled={isCommenting[post.id] || !(commentInputs[post.id] || '').trim()}
+//                               style={{
+//                                 background: 'none', border: 'none', color: 'var(--primary)', 
+//                                 cursor: 'pointer', display: 'flex', alignItems: 'center'
+//                               }}
+//                             >
+//                               <span className="material-symbols-outlined">send</span>
+//                             </button>
+//                           </div>
+//                         </div>
 //                       )}
-//                     </div>
-                    
-//                     <div style={{ padding: '0 1.25rem 1rem', display: 'flex', justifyContent: 'space-between', fontSize: '0.95rem', color: '#64748b' }}>
-//                       <div>❤️ {post.likeCount || 0}</div>
-//                       <div>{post.commentCount || 0} bình luận • 0 chia sẻ</div>
-//                     </div>
-//                   </div>
-//                ))
-//             )}
+//                       {/* --- END KHU VỰC BÌNH LUẬN --- */}
+//                     </article>
+//                   );
+//                 })
+//               )}
+//             </div>
 
 //           </main>
 //         </div>
 //       </div>
 //     </Layout>
 //   );
-// };
-
-// export default ProfilePage;
-
-// src/pages/Profile.jsx
-//
-// Relationship flow:
-//   - Xem profile người khác → GET /api/User/AddFriend?userId=<myId>
-//     → Tìm trong kết quả xem có relationship nào liên quan đến targetId
-//   - Gửi kết bạn → POST /api/User/AddFriend { senderId: myId, targetUserId }
-//   - Chấp nhận   → PUT  /api/User/AddFriend { id: relationship.Id, status: 1 }
-//   - Từ chối     → PUT  /api/User/AddFriend { id: relationship.Id, status: 2 }
+// }
 
 import React, { useEffect, useState, useCallback } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useSearchParams, Link } from 'react-router-dom';
 import Layout from '../components/Layout';
-import { AccountApi, RelationshipApi, Auth } from '../lib/api';
-import { getInitials, showToast } from '../lib/ui';
-import '../styles/Profile.css';
-
-// Relationship status từ backend
-const REL = { PENDING: 0, ACCEPTED: 1, REJECTED: 2, NONE: -1 };
+import { AccountApi } from '../lib/api/account.api';
+import { RelationshipApi } from '../lib/api/relationship.api';
+import { Auth } from '../lib/api/baseApi';
+import { PostApi } from '../lib/api/post.api';
+import { getInitials, timeAgo, showToast } from '../lib/ui';
+import "../styles/Profile.css";
 
 export default function Profile() {
   const [searchParams] = useSearchParams();
   const targetId = searchParams.get('id');
-  const myId     = String(Auth.getUserId());
-  const isMe     = !targetId || targetId === myId;
-  const navigate = useNavigate();
+  const myId = String(Auth.getUserId());
+  const displayId = targetId || myId;
+  const isMe = displayId === myId;
 
-  const [profile, setProfile]       = useState(null);
-  const [loading, setLoading]       = useState(true);
-  const [error, setError]           = useState(null);
-  const [relLoading, setRelLoading] = useState(false);
+  const [profile, setProfile] = useState(null);
+  const [posts, setPosts] = useState([]);
+  const [relStatus, setRelStatus] = useState('NONE');
+  const [loading, setLoading] = useState(true);
 
-  // Relationship state
-  // relStatus: -1 (none) | 0 (pending) | 1 (accepted) | 2 (rejected)
-  const [relStatus, setRelStatus]   = useState(REL.NONE);
-  // Lưu relationship.Id để truyền vào accept/reject (KHÔNG phải userId)
-  const [relId, setRelId]           = useState(null);
-  // Chiều của pending: 'sent' | 'received'
-  const [relDirection, setRelDirection] = useState(null);
-  const [friendCount, setFriendCount]   = useState(null);
-
-  // ── Load profile + relationship status ────────────────────────────
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  const loadData = useCallback(async () => {
     try {
-      // Lấy profile
-      const res = await AccountApi.getProfile(isMe ? myId : targetId);
-      // UserController trả raw object (không wrap ApiResponse)
-      const p = res?.result ?? res;
-      setProfile(p);
+      setLoading(true);
+      const [pRes, postRes] = await Promise.all([
+        AccountApi.getProfile(displayId),
+        PostApi.getPosts()
+      ]);
+      setProfile(pRes.result || pRes);
+      const allPosts = Array.isArray(postRes) ? postRes : (postRes?.result || []);
+      setPosts(allPosts.filter(p => String(p.userId) === displayId));
 
-      if (isMe) {
-        // Lấy số bạn bè của mình
-        const fr = await RelationshipApi.getFriends();
-        setFriendCount((fr?.result ?? []).length);
-      } else {
-        // Xác định relationship status với targetId
-        // GET /api/User/AddFriend?userId=<myId>
-        // → Các relationship có ReceiverId = myId
-        // Cần tìm cả chiều ngược (mình gửi đến targetId)
-        // → Cũng GET với userId=<targetId> nếu backend hỗ trợ
-        // Tạm: chỉ dùng userId=myId (nhận lời mời từ target)
-        try {
-          const relRes = await RelationshipApi.getRelationships(myId);
-          const all = relRes?.result ?? [];
-
-          // Tìm relationship giữa mình và targetId
-          const rel = all.find(
-            (r) => r.userId === targetId || r.friendId === targetId
-          );
-
-          if (!rel) {
-            // Thử tìm theo chiều mình gửi: GET với userId=targetId
-            const relRes2 = await RelationshipApi.getRelationships(targetId);
-            const all2 = relRes2?.result ?? [];
-            const rel2 = all2.find(
-              (r) => r.userId === myId || r.friendId === myId
-            );
-            if (rel2) {
-              setRelId(rel2.id);
-              setRelStatus(rel2.status);
-              setRelDirection(rel2.userId === myId ? 'sent' : 'received');
-            } else {
-              setRelStatus(REL.NONE);
-              setRelId(null);
-            }
-          } else {
-            setRelId(rel.id);
-            setRelStatus(rel.status);
-            setRelDirection(rel.userId === myId ? 'sent' : 'received');
-          }
-        } catch {
-          setRelStatus(REL.NONE);
+      if (!isMe) {
+        const [fRes, rRes] = await Promise.all([
+          RelationshipApi.getFriends(),
+          RelationshipApi.getPendingRequests()
+        ]);
+        const friends = fRes.result || [];
+        const requests = rRes.result || [];
+        if (friends.some(f => String(f.userId) === displayId || String(f.friendId) === displayId)) {
+          setRelStatus('FRIENDS');
+        } else {
+          const req = requests.find(r => String(r.userId) === displayId || String(r.friendId) === displayId);
+          setRelStatus(req ? (String(req.friendId) === myId ? 'PENDING_RECEIVED' : 'PENDING_SENT') : 'NONE');
         }
       }
     } catch (err) {
-      setError(err.message);
+      showToast("Lỗi tải trang cá nhân", "error");
     } finally {
       setLoading(false);
     }
-  }, [targetId, isMe, myId]);
+  }, [displayId, isMe, myId]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { loadData(); }, [loadData]);
 
-  // ── Gửi lời mời kết bạn ──────────────────────────────────────────
-  // POST /api/User/AddFriend { senderId: myId, targetUserId }
-  const handleSendRequest = async () => {
-    setRelLoading(true);
-    try {
-      const res = await RelationshipApi.sendFriendRequest(targetId);
-      // res.result là relationship.Id vừa tạo
-      const newRelId = res?.result ?? res;
-      setRelId(newRelId);
-      setRelStatus(REL.PENDING);
-      setRelDirection('sent');
-      showToast('Đã gửi lời mời kết bạn', 'success');
-    } catch (err) {
-      showToast(err.message || 'Gửi lời mời thất bại', 'error');
-    } finally {
-      setRelLoading(false);
-    }
-  };
-
-  // ── Chấp nhận lời mời ────────────────────────────────────────────
-  // PUT /api/User/AddFriend { id: relId, status: 1 }
-  // PHẢI dùng relId (relationship.Id), KHÔNG phải targetId
-  const handleAccept = async () => {
-    if (!relId) { showToast('Không tìm thấy lời mời', 'error'); return; }
-    setRelLoading(true);
-    try {
-      await RelationshipApi.acceptRequest(relId);
-      setRelStatus(REL.ACCEPTED);
-      setFriendCount((c) => (c !== null ? c + 1 : 1));
-      showToast('Đã chấp nhận lời mời kết bạn!', 'success');
-    } catch (err) {
-      showToast(err.message || 'Không thể chấp nhận', 'error');
-    } finally {
-      setRelLoading(false);
-    }
-  };
-
-  // ── Từ chối lời mời ──────────────────────────────────────────────
-  // PUT /api/User/AddFriend { id: relId, status: 2 }
-  const handleReject = async () => {
-    if (!relId) return;
-    setRelLoading(true);
-    try {
-      await RelationshipApi.rejectRequest(relId);
-      setRelStatus(REL.NONE);
-      setRelId(null);
-      showToast('Đã từ chối lời mời', 'success');
-    } catch (err) {
-      showToast(err.message || 'Không thể từ chối', 'error');
-    } finally {
-      setRelLoading(false);
-    }
-  };
-
-  // ── Render nút hành động theo trạng thái ─────────────────────────
-  const renderRelButton = () => {
-    if (isMe) {
-      return <button className="btn btn-secondary">Chỉnh sửa hồ sơ</button>;
-    }
-    if (relLoading) {
-      return <button className="btn btn-ghost" disabled><span className="spinner" /></button>;
-    }
-    switch (relStatus) {
-      case REL.ACCEPTED:
-        return (
-          <button className="btn btn-ghost" disabled>
-            <span className="material-symbols-outlined" style={{ fontSize: 16 }}>check</span>
-            Bạn bè
-          </button>
-        );
-      case REL.PENDING:
-        if (relDirection === 'sent') {
-          return <button className="btn btn-ghost" disabled>Đã gửi lời mời</button>;
-        }
-        // Nhận được lời mời → hiện nút Chấp nhận / Từ chối
-        return (
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button className="btn btn-primary" onClick={handleAccept}>Chấp nhận</button>
-            <button className="btn btn-ghost"   onClick={handleReject}>Từ chối</button>
-          </div>
-        );
-      default:
-        return (
-          <button className="btn btn-primary" onClick={handleSendRequest}>
-            <span className="material-symbols-outlined" style={{ fontSize: 16 }}>person_add</span>
-            Kết bạn
-          </button>
-        );
-    }
-  };
-
-  // ── Loading / Error ───────────────────────────────────────────────
-  if (loading) return (
-    <Layout title="Trang cá nhân">
-      <div className="page-content">
-        <div className="skeleton" style={{ height: 280, borderRadius: 16, marginBottom: 20 }} />
-        <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: 20 }}>
-          <div className="skeleton" style={{ height: 200, borderRadius: 16 }} />
-          <div className="skeleton" style={{ height: 200, borderRadius: 16 }} />
-        </div>
-      </div>
-    </Layout>
-  );
-
-  if (error) return (
-    <Layout title="Trang cá nhân">
-      <div className="page-content">
-        <div className="alert alert-error">{error}</div>
-      </div>
-    </Layout>
-  );
+  if (loading) return <Layout><div className="loader">Đang tải...</div></Layout>;
 
   return (
-    <Layout title={profile?.fullName || 'Trang cá nhân'}>
-      <div className="page-content wide">
-
-        {/* ── Header card ── */}
-        <div className="p-header-card">
-          <div className="p-cover" />
-          <div className="p-info-bar">
-            <div className="p-left">
-              <div className="p-avatar-wrap">
-                <div className="p-avatar">{getInitials(profile?.fullName || 'U')}</div>
-              </div>
-              <div className="p-meta">
-                <h1>{profile?.fullName || profile?.username || 'User'}</h1>
-                <p className="p-username">@{profile?.username}</p>
-                {friendCount !== null && (
-                  <p className="p-friends">
-                    <span
-                      className="material-symbols-outlined"
-                      style={{ fontSize: 16, verticalAlign: 'middle' }}
-                    >group</span>
-                    {' '}{friendCount.toLocaleString('vi-VN')} bạn bè
-                  </p>
-                )}
-              </div>
-            </div>
-
-            <div className="p-actions">
-              {renderRelButton()}
-              {!isMe && (
-                <button className="btn btn-secondary">
-                  <span className="material-symbols-outlined" style={{ fontSize: 18 }}>chat</span>
-                  Nhắn tin
-                </button>
-              )}
-            </div>
-          </div>
+    <Layout>
+      <div className="page-content">
+        <div className="p-header-card card">
+          <div className="p-avatar">{getInitials(profile?.fullName || profile?.username)}</div>
+          <h1>{profile?.fullName || profile?.username}</h1>
         </div>
-
-        {/* ── Content ── */}
         <div className="p-grid">
           <aside className="p-sidebar">
             <div className="card">
-              <h3 style={{ marginBottom: 12, fontSize: '1rem' }}>Giới thiệu</h3>
-              <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-                {profile?.bio || 'Chưa có thông tin'}
-              </p>
-              <div style={{ marginTop: 12, fontSize: '0.85rem', color: 'var(--text-tertiary)' }}>
-                <div>📧 {profile?.email || '—'}</div>
-              </div>
+              <h3>Giới thiệu</h3>
+              <p>{profile?.bio || "Chưa có thông tin"}</p>
             </div>
           </aside>
-
           <main className="p-main">
-            {isMe && (
-              <div
-                className="card p-post-input"
-                style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 16, padding: '1rem' }}
-              >
-                <div className="avatar">{getInitials(profile?.fullName || 'U')}</div>
-                <input
-                  type="text"
-                  placeholder="Bạn đang nghĩ gì?"
-                  onClick={() => navigate('/')}
-                  readOnly
-                  style={{
-                    cursor: 'pointer', background: 'var(--surface-2)',
-                    border: 'none', borderRadius: '999px',
-                    padding: '10px 18px', flex: 1, fontSize: '0.9rem',
-                  }}
-                />
-              </div>
-            )}
-
-            <div className="card" style={{ textAlign: 'center', padding: '48px 20px', color: 'var(--text-tertiary)' }}>
-              <span
-                className="material-symbols-outlined"
-                style={{ fontSize: 44, marginBottom: 12, display: 'block' }}
-              >article</span>
-              <p style={{ fontSize: '0.9rem' }}>Chưa có bài viết nào</p>
-            </div>
+            {posts.map(post => (
+              <article key={post.id} className="card post-card">
+                <div className="post-time">{timeAgo(post.createdAt)}</div>
+                <p>{post.content}</p>
+                {post.fileUrl && (
+                  <div className="post-images">
+                    {post.fileUrl.split(',').map((url, i) => (
+                      url && <img key={i} src={url} alt="post" style={{ width: '100%', borderRadius: '8px', marginTop: '10px' }} />
+                    ))}
+                  </div>
+                )}
+              </article>
+            ))}
           </main>
         </div>
-
       </div>
     </Layout>
   );

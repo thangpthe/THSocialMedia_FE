@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { Auth, AccountApi } from '../lib/api';
+// import { Auth, AccountApi } from '../lib/api';
+import { Auth } from '../lib/api/baseApi';
+import { AccountApi } from '../lib/api/account.api';
 import { getInitials } from '../lib/ui';
 import Toast from './Toast';
 import '../styles/Layout.css';

@@ -1,99 +1,304 @@
-/* ── Post Creator ── */
+/* ══ KHUNG TẠO BÀI VIẾT (POST CREATOR) ════════════════════════════════ */
 .post-creator {
-  margin-bottom: 20px;
-  padding: 16px 20px;
+  margin-bottom: var(--sp-5);
+  padding: var(--sp-4) var(--sp-5);
 }
+
 .creator-row {
   display: flex;
-  gap: 12px;
+  gap: var(--sp-3);
   align-items: flex-start;
-  margin-bottom: 12px;
+  margin-bottom: var(--sp-3);
 }
+
 .creator-textarea {
   flex: 1;
   resize: none;
   border: none !important;
   background: var(--surface-2) !important;
-  border-radius: 12px !important;
-  padding: 12px 16px !important;
+  border-radius: var(--r-md) !important;
+  padding: var(--sp-3) var(--sp-4) !important;
   font-size: 0.95rem !important;
   line-height: 1.5;
-  transition: background 0.15s;
   min-height: 48px;
 }
-.creator-textarea:focus {
-  background: var(--surface-3) !important;
-  box-shadow: none !important;
-  border-color: transparent !important;
-}
+
 .creator-footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-top: 10px;
+  padding-top: var(--sp-3);
   border-top: 1px solid var(--border-light);
 }
-.creator-attachments { display: flex; gap: 4px; }
-.attach-btn {
-  display: flex; align-items: center; gap: 6px;
-  padding: 7px 12px;
-  border: none; background: none; border-radius: var(--r-md);
-  font-size: 0.82rem; font-weight: 600; color: var(--text-secondary);
-  cursor: pointer; transition: background 0.15s;
-}
-.attach-btn:hover { background: var(--surface-2); }
-.attach-btn .material-symbols-outlined { font-size: 18px; }
 
-/* ── Feed ── */
+.creator-attachments {
+  display: flex;
+  gap: var(--sp-1);
+}
+
+.attach-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: none;
+  background: none;
+  border-radius: var(--r-md);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.attach-btn:hover {
+  background: var(--surface-3);
+}
+
+/* ══ DANH SÁCH BÀI VIẾT (FEED) ══════════════════════════════════════ */
 .feed-list {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--sp-4);
 }
 
-.empty-feed {
-  text-align: center;
-  padding: 60px 20px;
-  color: var(--text-tertiary);
-  display: flex; flex-direction: column; align-items: center; gap: 12px;
+/* ══ THẺ BÀI VIẾT (POST CARD) ═══════════════════════════════════════ */
+.post-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow 0.2s ease;
 }
-.empty-feed p { font-size: 0.95rem; }
 
-/* ── Post Card ── */
-.post-card { padding: 18px 20px; }
+.post-card:hover {
+  box-shadow: var(--shadow-md);
+}
 
-.post-header { margin-bottom: 12px; }
+/* Header bài viết */
+.post-header {
+  padding: var(--sp-4) var(--sp-4) 0;
+}
+
 .post-author {
-  display: flex; align-items: center; gap: 10px;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
 }
-.author-name {
-  display: block;
-  font-size: 0.92rem; font-weight: 700;
-  color: var(--text-primary);
-  transition: color 0.1s;
-}
-.author-name:hover { color: var(--primary); }
-.post-time { font-size: 0.78rem; color: var(--text-tertiary); margin-top: 1px; }
 
-.post-body { margin-bottom: 12px; }
-.post-body p {
-  font-size: 0.95rem; line-height: 1.65;
-  color: var(--text-primary); white-space: pre-wrap;
+.author-name {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--text-primary);
+  text-decoration: none;
 }
+
+.author-name:hover {
+  text-decoration: underline;
+}
+
+.post-time {
+  font-size: 0.8rem;
+  color: var(--text-tertiary);
+}
+
+/* Nội dung văn bản */
+.post-body {
+  padding: var(--sp-3) var(--sp-4);
+  font-size: 0.95rem;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* ══ HỆ THỐNG ẢNH (IMAGE GRID) ══════════════════════════════════════ */
+.post-images {
+  display: grid;
+  gap: 2px;
+  background: var(--border-light);
+  overflow: hidden;
+}
+
+.img-count-1 .post-img-wrap { aspect-ratio: unset; max-height: 500px; }
+.img-count-2 { grid-template-columns: 1fr 1fr; }
+.img-count-3 { grid-template-columns: 1fr 1fr; }
+.img-count-3 .post-img-wrap:first-child { grid-column: 1 / -1; }
+.img-count-4 { grid-template-columns: 1fr 1fr; }
+
+.post-img-wrap {
+  position: relative;
+  aspect-ratio: 4/3;
+  background: #000;
+}
+
+.post-img-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* ══ NÚT TƯƠNG TÁC (POST ACTIONS) ═══════════════════════════════════ */
+.post-stats {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--sp-2) var(--sp-4);
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border-light);
+}
+
+.stat-heart { color: #ef4444; margin-right: 4px; }
 
 .post-actions {
   display: flex;
+  padding: 4px;
   gap: 4px;
-  border-top: 1px solid var(--border-light);
-  padding-top: 10px;
-  margin-top: 4px;
 }
+
 .action-btn {
-  flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;
-  padding: 8px;
-  border: none; background: none; border-radius: var(--r-md);
-  color: var(--text-secondary); font-size: 0.82rem; font-weight: 600;
-  cursor: pointer; transition: all 0.15s;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 0;
+  background: transparent;
+  border: none;
+  border-radius: var(--r-md);
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  transition: all 0.2s ease;
 }
-.action-btn:hover { background: var(--surface-2); color: var(--primary); }
-.action-btn .material-symbols-outlined { font-size: 18px; }
+
+.action-btn:hover {
+  background: var(--surface-2);
+  color: var(--primary);
+}
+
+.action-btn .material-symbols-outlined {
+  font-size: 20px;
+  font-variation-settings: 'FILL' 0, 'wght' 500;
+}
+
+/* ══ KHU VỰC BÌNH LUẬN (COMMENTS) ═══════════════════════════════════ */
+.comments-section {
+  background: var(--surface-2);
+  padding: var(--sp-4);
+  border-top: 1px solid var(--border-light);
+}
+
+.comment-item {
+  display: flex;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-3);
+}
+
+.comment-bubble {
+  background: var(--surface);
+  border-radius: var(--r-md);
+  padding: var(--sp-2) var(--sp-3);
+  flex: 1;
+  box-shadow: var(--shadow-xs);
+}
+
+.comment-author {
+  font-weight: 700;
+  font-size: 0.85rem;
+  text-decoration: none;
+  color: var(--text-primary);
+  display: block;
+  margin-bottom: 2px;
+}
+
+.comment-text {
+  font-size: 0.9rem;
+  color: var(--text-primary);
+}
+
+/* Ô nhập bình luận */
+.comment-input-area {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-top: var(--sp-4);
+}
+
+.comment-input-area input {
+  flex: 1;
+  padding: 10px 16px;
+  border-radius: var(--r-full);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  font-size: 0.9rem;
+  outline: none;
+}
+
+.comment-input-area input:focus {
+  border-color: var(--primary);
+}
+
+.send-comment-btn {
+  background: var(--primary);
+  color: white;
+  border: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.send-comment-btn:hover:not(:disabled) {
+  background: var(--primary-hover);
+  transform: scale(1.05);
+}
+
+.send-comment-btn:disabled {
+  background: var(--text-disabled);
+  opacity: 0.6;
+}
+
+/* ══ TIỆN ÍCH (UTILS) ═══════════════════════════════════════════════ */
+.avatar {
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: white;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 0.9rem;
+  flex-shrink: 0;
+}
+
+.avatar.sm { width: 32px; height: 32px; font-size: 0.75rem; }
+
+.preview-container {
+  display: flex; gap: var(--sp-2);
+  padding: 0 var(--sp-5) var(--sp-3);
+  flex-wrap: wrap;
+}
+
+.preview-thumb {
+  position: relative;
+  width: 60px; height: 60px;
+  border-radius: var(--r-sm);
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+.preview-thumb img { width: 100%; height: 100%; object-fit: cover; }
+
+.remove-img-btn {
+  position: absolute; top: 2px; right: 2px;
+  background: rgba(0,0,0,0.6); color: white;
+  border: none; border-radius: 50%;
+  width: 18px; height: 18px;
+  font-size: 12px; cursor: pointer;
+}

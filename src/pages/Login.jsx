@@ -1,8 +1,8 @@
-
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AuthApi, Auth } from '../lib/api';
+// import { AuthApi, Auth } from '../lib/api';
+import { AuthApi } from '../lib/api/auth.api';
+import { Auth } from '../lib/api/baseApi';
 import '../styles/Login.css';
 
 const LoginPage = () => {
