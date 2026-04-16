@@ -302,3 +302,38 @@
   width: 18px; height: 18px;
   font-size: 12px; cursor: pointer;
 }
+
+/* ── Overlay khi đang upload ── */
+.preview-thumb.uploading {
+  opacity: 0.7;
+}
+
+.upload-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.upload-overlay .spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(255,255,255,0.4);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Thông tin thời gian upload */
+.comment-time {
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+  display: block;
+  margin-top: 4px;
+}

@@ -8,8 +8,8 @@ export const PostApi = {
     };
 
     if (payload.fileUrls && payload.fileUrls.length > 0) {
-    body.fileUrl = payload.fileUrls.join(','); 
-  }
+      body.fileUrls = payload.fileUrls; 
+    }
 
     return authRequest('POST', '/Post', body);
   },

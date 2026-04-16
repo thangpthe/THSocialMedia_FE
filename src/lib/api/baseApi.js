@@ -54,6 +54,43 @@ export async function request(method, path, body = null) {
   return data;
 }
 
+// ── UPLOAD FILE (multipart/form-data) ───────────
+// ── UPLOAD FILE (multipart/form-data) ───────────
+// Endpoint: POST /api/upload/multiple  → trả về { result: [ { fileUrl: "https://..." } ] }
+export async function uploadFile(file) {
+  const token = Auth.getToken();
+  const formData = new FormData();
+  formData.append('Files', file); // field name phải khớp với backend
+
+  let res;
+  try {
+    res = await fetch(`${API_BASE}/upload/multiple`, {
+      method: 'POST',
+      headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+      body: formData,
+    });
+  } catch {
+    throw new Error('Không thể kết nối đến server.');
+  }
+
+  let data = {};
+  try { data = await res.json(); } catch {}
+
+  if (res.status === 401) {
+    Auth.clear();
+    window.location.href = '/login';
+    return;
+  }
+
+  if (!res.ok) {
+    const msg = data?.message || data?.title || `Lỗi upload ${res.status}`;
+    throw new Error(msg);
+  }
+
+  // Backend trả về mảng ảnh trong result
+  return data?.result?.[0]?.fileUrl ?? data?.url ?? data?.fileUrl ?? data?.result ?? data;
+}
+
 // ── REQUEST CÓ AUTH ─────────────────────────────
 export async function authRequest(method, path, body = null) {
   const headers = { 'Content-Type': 'application/json' };

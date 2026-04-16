@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { PostApi } from '../lib/api/post.api';
-import { Auth } from '../lib/api/baseApi';
+import { Auth, uploadFile } from '../lib/api/baseApi';
 import Layout from '../components/Layout';
 import { getInitials, timeAgo, showToast } from '../lib/ui';
 import '../styles/Home.css';
@@ -11,7 +11,8 @@ export default function Home() {
   const [loading, setLoading]                   = useState(true);
   const [postContent, setPostContent]           = useState('');
   const [isPosting, setIsPosting]               = useState(false);
-  const [selectedImages, setSelectedImages]     = useState([]);
+    const [selectedImages, setSelectedImages]     = useState([]);
+  const [uploadingCount, setUploadingCount]     = useState(0); 
   const fileInputRef                            = useRef(null);
 
   // Bình luận
@@ -28,11 +29,6 @@ export default function Home() {
       setLoading(true);
       const res = await PostApi.getPosts();
       const dataList = Array.isArray(res) ? res : (res?.result || res?.value || []);
-      dataList.forEach(post => {
-      if (post.fileUrl) {
-        console.log(`Bài viết ID ${post.id} có chuỗi ảnh:`, post.fileUrl);
-      }
-    });
       setPosts(dataList);
     } catch (err) {
       showToast('Lỗi tải bảng tin', 'error');
@@ -43,30 +39,77 @@ export default function Home() {
 
   useEffect(() => { loadPosts(); }, []);
 
-  // ── Chọn ảnh preview ──────────────────────────────────────────────────────
-  const handleImageChange = (e) => {
-    Array.from(e.target.files).forEach(file => {
-      const reader = new FileReader();
-      reader.onloadend = () =>
-        setSelectedImages(prev => [...prev, reader.result]);
-      reader.readAsDataURL(file);
-    });
-    e.target.value = ''; // reset để chọn lại cùng file
+  
+  const handleImageChange = async (e) => {
+    const files = Array.from(e.target.files);
+    e.target.value = ''; 
+
+    const newEntries = files.map(file => ({
+      previewUrl: URL.createObjectURL(file),
+      serverUrl:  null,
+      uploading:  true,
+    }));
+
+    setSelectedImages(prev => [...prev, ...newEntries]);
+    setUploadingCount(prev => prev + files.length);
+
+    await Promise.all(
+      files.map(async (file, i) => {
+        const indexInState = i; 
+        try {
+          const url = await uploadFile(file);
+          // Cập nhật đúng entry: tìm theo previewUrl (unique per object URL)
+          const previewUrl = newEntries[i].previewUrl;
+          setSelectedImages(prev =>
+            prev.map(img =>
+              img.previewUrl === previewUrl
+                ? { ...img, serverUrl: url, uploading: false }
+                : img
+            )
+          );
+        } catch (err) {
+          const previewUrl = newEntries[i].previewUrl;
+          showToast(`Lỗi upload ảnh: ${err.message}`, 'error');
+          // Xóa ảnh lỗi khỏi danh sách
+          setSelectedImages(prev =>
+            prev.filter(img => img.previewUrl !== previewUrl)
+          );
+          URL.revokeObjectURL(previewUrl);
+        } finally {
+          setUploadingCount(prev => prev - 1);
+        }
+      })
+    );
   };
 
-  const removeImage = (index) =>
-    setSelectedImages(prev => prev.filter((_, i) => i !== index));
+  const removeImage = (index) => {
+    setSelectedImages(prev => {
+      const item = prev[index];
+      if (item?.previewUrl) URL.revokeObjectURL(item.previewUrl);
+      return prev.filter((_, i) => i !== index);
+    });
+  };
 
-  // ── Đăng bài ─────────────────────────────────────────────────────────────
   const handleCreatePost = async () => {
     if (!postContent.trim() && selectedImages.length === 0) return;
+    if (uploadingCount > 0) {
+      showToast('Vui lòng chờ ảnh upload xong!', 'error');
+      return;
+    }
+
+    const fileUrls = selectedImages
+      .filter(img => img.serverUrl)
+      .map(img => img.serverUrl);
+
     setIsPosting(true);
     try {
       await PostApi.createPost({
         content:    postContent,
         visibility: 0,
-        fileUrls:   selectedImages.length > 0 ? selectedImages : null,
+        fileUrls:   fileUrls.length > 0 ? fileUrls : null,
       });
+
+      selectedImages.forEach(img => URL.revokeObjectURL(img.previewUrl));
       setPostContent('');
       setSelectedImages([]);
       await loadPosts();
@@ -78,7 +121,7 @@ export default function Home() {
     }
   };
 
-  // ── Bình luận ─────────────────────────────────────────────────────────────
+
   const toggleComments = (postId) =>
     setOpenComments(prev => ({ ...prev, [postId]: !prev[postId] }));
 
@@ -127,9 +170,16 @@ export default function Home() {
           {selectedImages.length > 0 && (
             <div className="preview-container">
               {selectedImages.map((img, index) => (
-                <div key={index} className="preview-thumb">
-                  <img src={img} alt="preview" />
-                  <button className="remove-img-btn" onClick={() => removeImage(index)}>×</button>
+                <div key={index} className={`preview-thumb${img.uploading ? ' uploading' : ''}`}>
+                  <img src={img.previewUrl} alt="preview" />
+                  {img.uploading && (
+                    <div className="upload-overlay">
+                      <span className="spinner" />
+                    </div>
+                  )}
+                  {!img.uploading && (
+                    <button className="remove-img-btn" onClick={() => removeImage(index)}>×</button>
+                  )}
                 </div>
               ))}
             </div>
@@ -157,10 +207,10 @@ export default function Home() {
             </div>
             <button
               onClick={handleCreatePost}
-              disabled={isPosting || (!postContent.trim() && selectedImages.length === 0)}
+              disabled={isPosting || uploadingCount > 0 || (!postContent.trim() && selectedImages.length === 0)}
               className="btn btn-primary"
             >
-              {isPosting ? 'Đang đăng...' : 'Đăng bài'}
+              {isPosting ? 'Đang đăng...' : uploadingCount > 0 ? `Đang tải ảnh (${uploadingCount})...` : 'Đăng bài'}
             </button>
           </div>
         </div>
@@ -184,10 +234,8 @@ export default function Home() {
               const visibleComments = isExpanded ? allComments : allComments.slice(0, 2);
               const hiddenCount     = allComments.length - 2;
 
-              // Tách fileUrl string thành mảng ảnh
-              const images = post.fileUrl
-                ? post.fileUrl.split(',').filter(Boolean)
-                : [];
+              // Tách fileUrls (backend trả mảng ròi)
+              const images = post.fileUrls || [];
 
               return (
                 <article key={post.id} className="card post-card">
@@ -217,9 +265,9 @@ export default function Home() {
                   )}
 
                   {/* ── Ảnh bài đăng ── */}
-                  {post.fileUrl && (
-                    <div className={`post-images img-count-${Math.min(post.fileUrl.split(',').filter(Boolean).length, 4)}`}>
-                      {post.fileUrl.split(',').filter(Boolean).slice(0, 4).map((url, i, arr) => (
+                  {post.fileUrls && post.fileUrls.length > 0 && (
+                    <div className={`post-images img-count-${Math.min(post.fileUrls.length, 4)}`}>
+                      {post.fileUrls.slice(0, 4).map((url, i, arr) => (
                         <div key={i} className="post-img-wrap">
                           <img src={url} alt={`ảnh ${i + 1}`} loading="lazy" />
                           {/* Hiển thị số lượng ảnh còn lại nếu nhiều hơn 4 ảnh */}
