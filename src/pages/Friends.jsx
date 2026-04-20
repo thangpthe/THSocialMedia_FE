@@ -183,10 +183,10 @@ export default function Friends() {
                     const status = getRelationshipStatus(user.id);
                     return (
                       <div key={user.id} className="f-card">
-                        <div className="f-avatar" onClick={() => navigate(`/profile?id=${user.id}`)}>
+                        <div className="f-avatar" onClick={() => navigate(`/profile/${user.id}`)}>
                           {getInitials(user.fullName || user.username)}
                         </div>
-                        <div className="f-info" onClick={() => navigate(`/profile?id=${user.id}`)}>
+                        <div className="f-info" onClick={() => navigate(`/profile/${user.id}`)}>
                           <span className="f-name">{user.fullName || user.username}</span>
                           <span className="f-username">@{user.username || user.userName}</span>
                         </div>
@@ -226,10 +226,10 @@ export default function Friends() {
                   </div>
                 ) : requests.map((r) => (
                   <div key={r.id} className="f-card">
-                    <div className="f-avatar" onClick={() => navigate(`/profile?id=${r.userId}`)}>
+                    <div className="f-avatar" onClick={() => navigate(`/profile/${r.userId}`)}>
                       {getInitials(r.userName || r.senderName)}
                     </div>
-                    <div className="f-info" onClick={() => navigate(`/profile?id=${r.userId}`)}>
+                    <div className="f-info" onClick={() => navigate(`/profile/${r.userId}`)}>
                       <span className="f-name">{r.userName || r.senderName || "Người dùng"}</span>
                       <span className="f-username">Muốn kết bạn với bạn</span>
                     </div>
@@ -265,15 +265,15 @@ export default function Friends() {
                   const fid = r.userId || r.friendId;
                   return (
                     <div key={r.id} className="f-card">
-                      <div className="f-avatar" onClick={() => navigate(`/profile?id=${fid}`)}>
+                      <div className="f-avatar" onClick={() => navigate(`/profile/${fid}`)}>
                         {getInitials(name)}
                       </div>
-                      <div className="f-info" onClick={() => navigate(`/profile?id=${fid}`)}>
+                      <div className="f-info" onClick={() => navigate(`/profile/${fid}`)}>
                         <span className="f-name">{name}</span>
                         <span className="f-username">Bạn bè</span>
                       </div>
                       <div className="f-actions">
-                        <button className="btn btn-secondary btn-sm" onClick={() => navigate(`/profile?id=${fid}`)}>
+                        <button className="btn btn-secondary btn-sm" onClick={() => navigate(`/profile/${fid}`)}>
                           Xem trang
                         </button>
                       </div>

@@ -5,7 +5,7 @@ import { Auth, uploadFile } from '../lib/api/baseApi';
 import Layout from '../components/Layout';
 import { getInitials, timeAgo, showToast } from '../lib/ui';
 import '../styles/Home.css';
-
+import PostCard from '../components/PostCard';
 export default function Home() {
   const [posts, setPosts]                       = useState([]);
   const [loading, setLoading]                   = useState(true);
@@ -15,7 +15,6 @@ export default function Home() {
   const [uploadingCount, setUploadingCount]     = useState(0); 
   const fileInputRef                            = useRef(null);
 
-  // Bình luận
   const [openComments, setOpenComments]         = useState({});   // { [postId]: bool }
   const [expandedComments, setExpandedComments] = useState({});   // { [postId]: bool }
   const [commentInputs, setCommentInputs]       = useState({});   // { [postId]: string }
@@ -128,24 +127,33 @@ export default function Home() {
   const handleExpandComments = (postId) =>
     setExpandedComments(prev => ({ ...prev, [postId]: true }));
 
-  const handlePostComment = async (postId) => {
-    const content = commentInputs[postId];
-    if (!content?.trim()) return;
+  const handlePostComment = async (postId, content) => {
+     try {
+       await PostApi.commentPost(postId, { content });
+       loadPosts();
+     } catch (err) {
+       showToast(err.message, 'error');
+     }
+  };
 
-    setIsCommenting(prev => ({ ...prev, [postId]: true }));
+  const handleReact = async (postId) => {
     try {
-      await PostApi.commentPost(postId, { content: content.trim() });
-      setCommentInputs(prev => ({ ...prev, [postId]: '' }));
-      setExpandedComments(prev => ({ ...prev, [postId]: true })); // tự mở rộng sau khi gửi
-      await loadPosts();
+      await PostApi.reactPost(postId, "like-guid");
+      loadPosts();
     } catch (err) {
-      showToast(err.message || 'Lỗi khi gửi bình luận', 'error');
-    } finally {
-      setIsCommenting(prev => ({ ...prev, [postId]: false }));
+      showToast(err.message, 'error');
     }
   };
 
-  // ─────────────────────────────────────────────────────────────────────────
+  const handleDeletePost = async (postId) => {
+    try {
+      await PostApi.deletePost(postId);
+      loadPosts();
+      showToast('Đã xóa bài viết', 'success');
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  };
   return (
     <Layout>
       <div className="page-content">

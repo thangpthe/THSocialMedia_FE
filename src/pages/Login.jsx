@@ -26,27 +26,12 @@ const LoginPage = () => {
 
     setLoading(true);
     try {
-      /*
-       * Backend LoginCommand nhận: { UserName, Password }
-       * LoginCommandHandler tìm: x.Username == request.UserName
-       * → Chỉ hỗ trợ đăng nhập bằng username, không hỗ trợ email
-       *
-       * Gửi đúng field name "userName" (C# JSON binding case-insensitive
-       * sẽ map "userName" → UserName)
-       */
+    
       const response = await AuthApi.login({
         userName: form.identifier.trim(),
         password: form.password,
       });
 
-      /*
-       * Backend trả: ApiResponse<string> (Result<string>)
-       * {
-       *   success: true,
-       *   statusCode: 200,
-       *   result: "<jwt_token_string>"   ← token là string thẳng
-       * }
-       */
       const token = response?.result ?? response?.token ?? response;
 
       if (!token || typeof token !== 'string') {
