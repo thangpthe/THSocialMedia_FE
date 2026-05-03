@@ -32,6 +32,12 @@ export const PostApi = {
   commentPost: (id, payload) =>
     authRequest('POST', `/Post/${id}/comment`, payload),
 
+  updateComment: (postId, commentId, payload) =>
+    authRequest('PUT', `/Post/${postId}/comment/${commentId}`, payload),
+
+  deleteComment: (postId, commentId) =>
+    authRequest('DELETE', `/Post/${postId}/comment/${commentId}`),
+
   reactPost: (id, reactionId) =>
     authRequest('POST', `/Post/${id}/react`, { reactionId }),
 };

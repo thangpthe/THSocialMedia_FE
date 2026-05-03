@@ -1,6 +1,4 @@
-/**
- * UI Utilities for React
- */
+
 
 export function showToast(msg, type = 'success') {
   const event = new CustomEvent('showToast', { detail: { msg, type } });
